@@ -1,24 +1,62 @@
 const express = require('express');
+const bodyParser = require('body-parser');
 const app = express();
-app.use(express.json());
 
+// Middleware
+app.use(bodyParser.json());
+
+// In-memory data store for tasks
 let tasks = [];
 
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>To-Do App</h1>
-    <ul>${tasks.map(task => `<li>${task}</li>`).join('')}</ul>
-    <form method="POST" action="/add">
-      <input name="task" placeholder="Add a task" />
-      <button type="submit">Add</button>
-    </form>
-  `);
+// Routes
+
+// Get all tasks
+app.get('/tasks', (req, res) => {
+    res.json(tasks);
 });
 
-app.post('/add', (req, res) => {
-  const { task } = req.body;
-  if (task) tasks.push(task);
-  res.redirect('/');
+// Add a new task
+app.post('/tasks', (req, res) => {
+    const { title } = req.body;
+    if (!title) {
+        return res.status(400).json({ error: 'Task title is required' });
+    }
+    const newTask = { id: tasks.length + 1, title, completed: false };
+    tasks.push(newTask);
+    res.status(201).json(newTask);
 });
 
-app.listen(3000, () => console.log('To-Do app listening on http://localhost:3000'));
+// Update a task
+app.put('/tasks/:id', (req, res) => {
+    const { id } = req.params;
+    const { title, completed } = req.body;
+    const task = tasks.find(t => t.id === parseInt(id));
+
+    if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+    }
+
+    if (title !== undefined) task.title = title;
+    if (completed !== undefined) task.completed = completed;
+
+    res.json(task);
+});
+
+// Delete a task
+app.delete('/tasks/:id', (req, res) => {
+    const { id } = req.params;
+    const taskIndex = tasks.findIndex(t => t.id === parseInt(id));
+
+    if (taskIndex === -1) {
+        return res.status(404).json({ error: 'Task not found' });
+    }
+
+    tasks.splice(taskIndex, 1);
+    res.status(204).send();
+});
+
+// Start server
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
