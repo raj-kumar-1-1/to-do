@@ -1,62 +1,42 @@
 const express = require('express');
+const path = require('path');
 const bodyParser = require('body-parser');
+
 const app = express();
+const PORT = 3000;
+
+// Mock database for storing to-do items
+let todoList = [];
 
 // Middleware
-app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.json()); // For parsing JSON requests
 
-// In-memory data store for tasks
-let tasks = [];
-
-// Routes
-
-// Get all tasks
-app.get('/tasks', (req, res) => {
-    res.json(tasks);
+// API routes
+app.get('/todos', (req, res) => {
+    res.json(todoList);
 });
 
-// Add a new task
-app.post('/tasks', (req, res) => {
-    const { title } = req.body;
-    if (!title) {
-        return res.status(400).json({ error: 'Task title is required' });
-    }
-    const newTask = { id: tasks.length + 1, title, completed: false };
-    tasks.push(newTask);
-    res.status(201).json(newTask);
-});
-
-// Update a task
-app.put('/tasks/:id', (req, res) => {
-    const { id } = req.params;
-    const { title, completed } = req.body;
-    const task = tasks.find(t => t.id === parseInt(id));
-
+app.post('/todos', (req, res) => {
+    const { task } = req.body;
     if (!task) {
-        return res.status(404).json({ error: 'Task not found' });
+        return res.status(400).json({ error: 'Task is required' });
     }
-
-    if (title !== undefined) task.title = title;
-    if (completed !== undefined) task.completed = completed;
-
-    res.json(task);
+    todoList.push(task);
+    res.json({ success: true, todos: todoList });
 });
 
-// Delete a task
-app.delete('/tasks/:id', (req, res) => {
-    const { id } = req.params;
-    const taskIndex = tasks.findIndex(t => t.id === parseInt(id));
-
-    if (taskIndex === -1) {
-        return res.status(404).json({ error: 'Task not found' });
+app.delete('/todos', (req, res) => {
+    const { index } = req.body;
+    if (index === undefined || index < 0 || index >= todoList.length) {
+        return res.status(400).json({ error: 'Invalid index' });
     }
-
-    tasks.splice(taskIndex, 1);
-    res.status(204).send();
+    todoList.splice(index, 1);
+    res.json({ success: true, todos: todoList });
 });
 
 // Start server
-// const PORT = process.env.PORT || 3000;
-app.listen(3037, () => {
-    console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
 });
+
